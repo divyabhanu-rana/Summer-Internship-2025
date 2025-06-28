@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+python-dotenv
+pydantic
+PyPDF2
+sentence-transformers
+tqdm
+numpy
+requests
+python-docx
+reportlab
