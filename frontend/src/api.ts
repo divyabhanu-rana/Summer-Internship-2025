@@ -1,12 +1,13 @@
 /**
- * THE API UTILIZES FOR THE LLM-QUESGENERATOR-INTERNSHIP-2025 FRONTEND.
+ * THE API UTILITIES FOR THE LLM-QUESGENERATOR-INTERNSHIP-2025 FRONTEND.
  *
  * THIS FILE ACTS AS A SINGLE POINT OF CONTACT FOR ALL BACKEND REQUESTS.
  * UPDATE BASE_URL AS REQUIRED FOR YOUR ENVIRONMENT.
  */
 
 export const BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+  import.meta.env.VITE_API_URL ||
+  "https://summer-internship-2025-production-288f.up.railway.app/; // <-- CHANGE THIS to your backend's public Railway URL";
 
 /**
  * Generate material (e.g., question paper/worksheets) based on provided parameters.
@@ -18,7 +19,8 @@ export async function generateMaterial(params: {
   chapter: string;
   material_type: string;
   difficulty: string;
-  max_marks?: number; // <-- Added support for max_marks
+  max_marks?: number;
+  stream?: string;
 }): Promise<string> {
   const response = await fetch(`${BASE_URL}/generate`, {
     method: "POST",
