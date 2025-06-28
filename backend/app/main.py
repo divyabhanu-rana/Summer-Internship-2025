@@ -168,7 +168,7 @@ async def generate_stream(
             yield f"data: {json.dumps({'progress': progress})}\n\n"
             await asyncio.sleep(0.8)  # Simulate work
 
-        # Now call your actual generate_material as the last step
+        
         from types import SimpleNamespace
         req = SimpleNamespace(
             grade=grade,
