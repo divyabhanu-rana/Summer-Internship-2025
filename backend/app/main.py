@@ -16,7 +16,16 @@ from .rag_pipeline import generate_material
 from .export import export_text
 from ollama_client import query_deepseek
 
+# Railway will provide PORT in the environment
+PORT = int(os.environ.get("PORT", 8000))
+
+# Set allowed origins for CORS (add your production frontend URL here!)
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+RAILWAY_FRONTEND_URL = os.getenv(
+    "RAILWAY_FRONTEND_URL",
+    "https://summer-internship-2025-production-fc84.up.railway.app"
+)
+ALLOWED_ORIGINS = [FRONTEND_URL, RAILWAY_FRONTEND_URL, "http://localhost:5173"]
 
 app = FastAPI(
     title="AI Material Generator",
@@ -24,10 +33,10 @@ app = FastAPI(
     version="1.1.0"
 )
 
-# --- CORS Middleware for local frontend ---
+# --- CORS Middleware for both local and deployed frontend ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -168,7 +177,7 @@ async def generate_stream(
             yield f"data: {json.dumps({'progress': progress})}\n\n"
             await asyncio.sleep(0.8)  # Simulate work
 
-        
+        # Now call your actual generate_material as the last step
         from types import SimpleNamespace
         req = SimpleNamespace(
             grade=grade,
@@ -187,11 +196,6 @@ async def generate_stream(
     import asyncio
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
-@app.get("/")
-def root():
-    return {"message": "Backend is running!"}
-
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port)
+    uvicorn.run("main:app", host="0.0.0.0", port=PORT, reload=True)
