@@ -164,25 +164,27 @@ async def generate_stream(
     Streams progress updates and the final output for the progress bar.
     On the frontend, use EventSource to listen to /api/generate_stream and update the progress bar accordingly.
     """
+    import asyncio
     async def event_generator():
-        # Simulate progress: This is where you'd call your actual AI/generation and yield progress events
         total_steps = 8
         for i in range(total_steps):
-            progress = int((i / (total_steps - 1)) * 90)  # up to 90%
+            progress = int((i / (total_steps - 1)) * 90)
             yield f"data: {json.dumps({'progress': progress})}\n\n"
-            await asyncio.sleep(0.8)  # Simulate work
+            await asyncio.sleep(0.8)
 
-        # Now call your actual generate_material as the last step
-        from types import SimpleNamespace
-
-        # --- FIX: Accept both str and list for chapter ---
+        # --- FIX: Accept both str and list for chapter, flattening and splitting if needed ---
         if isinstance(chapter, str):
             chapter_list = [c.strip() for c in chapter.split(",") if c.strip()]
         elif isinstance(chapter, list):
-            chapter_list = [c.strip() for c in chapter if isinstance(c, str) and c.strip()]
+            # flatten: if list contains comma-separated strings, split those too
+            chapter_list = []
+            for item in chapter:
+                if isinstance(item, str):
+                    chapter_list.extend([c.strip() for c in item.split(",") if c.strip()])
         else:
             chapter_list = []
 
+        from types import SimpleNamespace
         req = SimpleNamespace(
             grade=grade,
             chapter=chapter_list,
@@ -197,7 +199,6 @@ async def generate_stream(
         except Exception as ex:
             yield f"data: {json.dumps({'error': str(ex)})}\n\n"
 
-    import asyncio
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 if __name__ == "__main__":
