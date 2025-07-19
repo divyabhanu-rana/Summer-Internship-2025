@@ -19,21 +19,16 @@ from ollama_client import query_deepseek
 # Railway will provide PORT in the environment
 PORT = int(os.environ.get("PORT", 8000))
 
-# Set allowed origins for CORS (add your production frontend URL here!)
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
-RAILWAY_FRONTEND_URL = os.getenv(
-    "RAILWAY_FRONTEND_URL",
-    "https://summer-internship-2025-production-fc84.up.railway.app"
-)
-ALLOWED_ORIGINS = [FRONTEND_URL, RAILWAY_FRONTEND_URL, "http://localhost:5173"]
+# --- CORS Setup ---
+# Read allowed origins as a comma-separated list from FRONTEND_URL
+ALLOWED_ORIGINS = [origin.strip() for origin in os.getenv("FRONTEND_URL", "http://localhost:5173").split(",")]
 
 app = FastAPI(
-    title="AI Material Generator",
+    title="DIRO.ai: Material Generation Assistant",
     description="Generate educational materials (Question Papers/Worksheets/Lesson Plans) for Grades 1-12 using a RAG (Retrieval-Augmented Generation) pipeline by utilising Deepseek.",
     version="1.1.0"
 )
 
-# --- CORS Middleware for both local and deployed frontend ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
