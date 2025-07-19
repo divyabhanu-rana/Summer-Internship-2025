@@ -215,6 +215,7 @@ Show section labels, marks per section, question numbers, and clearly specify in
         f"Based ONLY on the following material provided from the backend/data/ directory of the project, "
         f"which is the {grade} textbook, Chapters: '{', '.join(chapters)}', "
         f"generate a {material_type.lower()} suitable for students. "
+        f"Distribute the questions and content across ALL the listed chapters, ensuring each chapter is represented in the final output. "
         +
         (
             f"For question papers, the total maximum marks is {max_marks}. "
@@ -237,6 +238,9 @@ Show section labels, marks per section, question numbers, and clearly specify in
         +
         (
             "For lesson plans, provide a clear sequence of teaching objectives, key points, teaching steps, activities, and assessment, but use ONLY content from the provided context. "
+            "The lesson plan MUST align with the principles and guidelines of the Government of India's NEW EDUCATION POLICY (NEP), 2020, explicitly mentioning inclusive education. "
+            "All activities should be designed to be accessible and supportive for students with disabilities, focusing on universal design for learning, differentiated instruction, and reasonable accommodations. "
+            "Highlight how each activity addresses diverse learning needs and promotes participation by students with disabilities. "
             if material_type.strip().lower() == "lesson plan" else ""
         )
         +
@@ -245,11 +249,11 @@ Show section labels, marks per section, question numbers, and clearly specify in
         f"Do NOT use your own knowledge or add facts that are not in the context. "
         f"Do not hallucinate or invent information. "
         f"If the context does not provide enough material, only use what is available and do not make up content.\n\n"
+        "IMPORTANT: Do NOT skip, summarize, or combine questions. Write out every question in full. Placeholders, continuations, or summaries (such as 'questions 11-18 continue similarly...' or 'remaining questions follow the same pattern') are strictly NOT allowed.\n"
+        "For Class 10 and Class 12: It is absolutely critical to provide EVERY required question in FULL, without omission or summarization, as these are board-level papers. No skipping, summarizing, or use of placeholders is permitted under any circumstances. Every question must be explicitly written out.\n\n"
         f"---\n"
         f"Context:\n"
-        f"{top_chunks[0] if len(top_chunks) > 0 else ''}\n"
-        f"{top_chunks[1] if len(top_chunks) > 1 else ''}\n"
-        f"{top_chunks[2] if len(top_chunks) > 2 else ''}\n"
+        f"{chr(10).join(top_chunks)}\n"
         f"---\n"
         f"Instructions:\n"
         +
@@ -264,13 +268,14 @@ Show section labels, marks per section, question numbers, and clearly specify in
         )
         +
         f"- Generate only the {material_type.lower()}, not answers.\n"
-        f"- Cover all main concepts found in the context.\n"
+        f"- Cover all main concepts found in the context, and ensure questions/content are distributed across ALL listed chapters.\n"
         f"- Ensure alignment with {difficulty.lower()} level.\n"
         f"- Number the questions or activities clearly.\n"
         f"- Do not repeat instructions or context in output.\n"
         f"- Do not hallucinate or use any information outside the provided context.\n"
+        f"- Do not use any markdown syntax (e.g., *, **, ---, etc.); output must be in plain text only.\n"
     )
-
+    
     print("Sending to Deepseek...")
     response = ask_deepseek(prompt)
     print("Deepseek returned.")
