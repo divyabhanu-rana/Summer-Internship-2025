@@ -125,6 +125,21 @@ CHAPTER_FILE_MAP = {
 def normalize_chapter(text):
     return text.strip().lower().replace("’", "'").replace("‘", "'").replace("–", "-").replace("—", "-")
 
+def ensure_chapter_list(chapter):
+    """
+    Always returns a flat list of non-empty chapters, whether input is str or list.
+    """
+    if isinstance(chapter, str):
+        return [c.strip() for c in chapter.split(",") if c.strip()]
+    elif isinstance(chapter, list):
+        chapters = []
+        for item in chapter:
+            if isinstance(item, str):
+                chapters.extend([c.strip() for c in item.split(",") if c.strip()])
+        return chapters
+    else:
+        return [str(chapter).strip()] if chapter else []
+
 def get_vectorstore_filename(grade: str, chapter: str) -> str:
     grade_num = ''.join(filter(str.isdigit, grade))
     chapter_key = normalize_chapter(chapter)
@@ -140,7 +155,8 @@ def get_vectorstore_filename(grade: str, chapter: str) -> str:
 def generate_material(request):
     print("Starting generation...")
     grade = request.grade        # e.g. "Grade 4" or "4"
-    chapters = [c.strip() for c in request.chapter.split(",")]   # Allow comma-separated chapters
+    # --- Use the robust chapter handler ---
+    chapters = ensure_chapter_list(getattr(request, "chapter", ""))
     material_type = request.material_type  # "Question Paper" or "Worksheet" or "Lesson Plan"
     difficulty = request.difficulty        # "Easy", "Medium", "Difficult"
     max_marks = getattr(request, "max_marks", None)
