@@ -154,7 +154,7 @@ def health_check():
 @app.get("/api/generate_stream")
 async def generate_stream(
     grade: str = Query(..., description="Grade number, e.g. '10'"),
-    chapter: str = Query(..., description="Comma-separated list of chapters"),
+    chapter: Union[str, List[str]] = Query(..., description="Comma-separated list of chapters"),
     material_type: str = Query(..., description="Material type (Question Paper, Worksheet, Lesson Plan)"),
     difficulty: str = Query(..., description="Difficulty (Easy, Medium, Difficult)"),
     stream: Optional[str] = Query(None, description="Stream for 11/12"),
@@ -174,9 +174,18 @@ async def generate_stream(
 
         # Now call your actual generate_material as the last step
         from types import SimpleNamespace
+
+        # --- FIX: Accept both str and list for chapter ---
+        if isinstance(chapter, str):
+            chapter_list = [c.strip() for c in chapter.split(",") if c.strip()]
+        elif isinstance(chapter, list):
+            chapter_list = [c.strip() for c in chapter if isinstance(c, str) and c.strip()]
+        else:
+            chapter_list = []
+
         req = SimpleNamespace(
             grade=grade,
-            chapter=[c.strip() for c in chapter.split(",") if c.strip()],
+            chapter=chapter_list,
             material_type=material_type,
             difficulty=difficulty,
             stream=stream,
