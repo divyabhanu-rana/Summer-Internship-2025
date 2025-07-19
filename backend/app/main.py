@@ -172,17 +172,24 @@ async def generate_stream(
             yield f"data: {json.dumps({'progress': progress})}\n\n"
             await asyncio.sleep(0.8)
 
-        # --- FIX: Accept both str and list for chapter, flattening and splitting if needed ---
+        # DEBUG: log the value and type of chapter
+        print(f"DEBUG: chapter type is {type(chapter)}, value is {chapter}")
+
+        # Robust handling of chapter
+        chapter_list = []
         if isinstance(chapter, str):
+            # Single string: split by comma
             chapter_list = [c.strip() for c in chapter.split(",") if c.strip()]
         elif isinstance(chapter, list):
-            # flatten: if list contains comma-separated strings, split those too
-            chapter_list = []
+            # List of strings: flatten and split each by comma
             for item in chapter:
                 if isinstance(item, str):
                     chapter_list.extend([c.strip() for c in item.split(",") if c.strip()])
         else:
-            chapter_list = []
+            # Unexpected type, try to cast to string then split
+            chapter_list = [str(chapter).strip()] if chapter else []
+
+        print(f"DEBUG: parsed chapter_list is {chapter_list}")
 
         from types import SimpleNamespace
         req = SimpleNamespace(
