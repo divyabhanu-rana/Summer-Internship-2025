@@ -159,12 +159,16 @@ CHAPTER_FILE_MAP = {
 }
 
 def normalize_chapter(text):
-    return text.strip().lower().replace("’", "'").replace("‘", "'").replace("–", "-").replace("—", "-")
+    # Normalize for mapping AND UI input
+    return (
+        text.strip().lower()
+        .replace("’", "'").replace("‘", "'")
+        .replace("–", "-").replace("—", "-")
+        .replace(".", "").replace("  ", " ")
+        .replace("&", "and")  # Optional: unify ampersand
+    )
 
 def ensure_chapter_list(chapter):
-    """
-    Always returns a flat list of non-empty chapters, whether input is str or list.
-    """
     if isinstance(chapter, str):
         return [c.strip() for c in chapter.split(",") if c.strip()]
     elif isinstance(chapter, list):
@@ -177,48 +181,76 @@ def ensure_chapter_list(chapter):
         return [str(chapter).strip()] if chapter else []
 
 def get_vectorstore_filename(grade: str, chapter: str) -> str:
-    grade_num = ''.join(filter(str.isdigit, grade))
+    grade_num = ''.join(filter(str.isdigit, str(grade)))
     chapter_key = normalize_chapter(chapter)
     key = (grade_num, chapter_key)
     if key in CHAPTER_FILE_MAP:
+        print(f"Exact mapping found for: {key} → {CHAPTER_FILE_MAP[key]}")
         return CHAPTER_FILE_MAP[key]
-    # Try partial match if exact not found (optional, can be removed for strict match)
+    # Try partial match (optional)
     for (g, ch), filename in CHAPTER_FILE_MAP.items():
         if g == grade_num and chapter_key in ch:
+            print(f"Partial mapping found for: {chapter_key} in {ch} → {filename}")
             return filename
-    raise ValueError(f"Cannot match chapter name to any vectorstore file: {chapter}")
+    print(f"ERROR: No mapping found for grade '{grade_num}' and chapter '{chapter_key}'")
+    raise ValueError(f"Cannot match chapter name to any vectorstore file: {chapter} (normalized: {chapter_key})")
 
 def generate_material(request):
-    print("Starting generation...")
+    print("\n--- Starting material generation ---")
     grade = request.grade        # e.g. "Grade 4" or "4"
-    # --- Use the robust chapter handler ---
     chapters = ensure_chapter_list(getattr(request, "chapter", ""))
-    material_type = request.material_type  # "Question Paper" or "Worksheet" or "Lesson Plan"
-    difficulty = request.difficulty        # "Easy", "Medium", "Difficult"
+    material_type = request.material_type
+    difficulty = request.difficulty
     max_marks = getattr(request, "max_marks", None)
+
+    print(f"Grade: {grade}")
+    print(f"Raw chapters: {chapters}")
+    print(f"Material type: {material_type}, Difficulty: {difficulty}, Max marks: {max_marks}")
 
     # Gather vectorstore files for all chapters
     vectorstore_files = []
     for chapter in chapters:
-        vectorstore_files.append(get_vectorstore_filename(grade, chapter))
+        print(f"Processing chapter: '{chapter}' (normalized: '{normalize_chapter(chapter)}')")
+        try:
+            vf = get_vectorstore_filename(grade, chapter)
+            vectorstore_files.append(vf)
+        except Exception as e:
+            print(f"ERROR during mapping: {e}")
+            raise
+
+    print(f"Vectorstore files to use: {vectorstore_files}")
 
     # Collect vectors from all relevant files
     vectors = []
-    for vectorstore_file in vectorstore_files:
+    for i, vectorstore_file in enumerate(vectorstore_files):
         vectorstore_path = os.path.join(VECTORSTORE_DIR, vectorstore_file)
+        print(f"Loading vectorstore file for chapter '{chapters[i]}': {vectorstore_path}")
         if not os.path.exists(vectorstore_path):
-            raise FileNotFoundError(f"Vectorstore file not found for {grade}, {chapter}: {vectorstore_file}")
-        with open(vectorstore_path, "r", encoding="utf-8") as f:
-            vectors.extend(json.load(f))
-    print(f"Loaded vectors: {len(vectors)} from chapters: {chapters}")
+            print(f"ERROR: File does not exist: {vectorstore_path}")
+            raise FileNotFoundError(f"Vectorstore file not found for {grade}, {chapters[i]}: {vectorstore_file}")
+        try:
+            with open(vectorstore_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                print(f"Loaded {len(data)} records from {vectorstore_path}")
+                vectors.extend(data)
+        except Exception as e:
+            print(f"ERROR reading/parsing JSON from {vectorstore_path}: {e}")
+            raise
+
+    print(f"Total vectors loaded: {len(vectors)} from chapters: {chapters}")
+
+    if not vectors:
+        print("ERROR: No vectors found. Vectorstore files may be empty or corrupted.")
+        raise ValueError("No vector data available for the requested chapters.")
 
     model = SentenceTransformer(EMBEDDING_MODEL)
     print("Loaded embedding model.")
+
     user_query = (
         f"Create a {material_type.lower()} for {grade}, Chapters: '{', '.join(chapters)}', with {difficulty.lower()} difficulty."
     )
     query_vec = model.encode([user_query])[0]
-    print("Encoded query.")
+    print("Encoded query:", user_query)
 
     def cosine_sim(a, b):
         a = np.array(a)
@@ -226,11 +258,15 @@ def generate_material(request):
         return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
 
     scored_chunks = [
-        (cosine_sim(query_vec, entry["embedding"]), entry["text"]) for entry in vectors
+        (cosine_sim(query_vec, entry["embedding"]), entry["text"])
+        for entry in vectors if "embedding" in entry and "text" in entry
     ]
     scored_chunks.sort(reverse=True, key=lambda x: x[0])
+
     top_chunks = [text for _, text in scored_chunks[:3]]
-    print("Selected top chunks.")
+    print("Top chunks selected for context:")
+    for idx, chunk in enumerate(top_chunks):
+        print(f"  [{idx+1}] {chunk[:120]}...")  # Print first 120 chars
 
     # ---- CONTEXT-AWARE, ANTI-HALLUCINATION PROMPT ----
     cbse10_pattern = """
@@ -311,8 +347,11 @@ Show section labels, marks per section, question numbers, and clearly specify in
         f"- Do not hallucinate or use any information outside the provided context.\n"
         f"- Do not use any markdown syntax (e.g., *, **, ---, etc.); output must be in plain text only.\n"
     )
-    
-    print("Sending to Deepseek...")
+
+    print("\nPrompt for Deepseek:\n")
+    print(prompt[:1200] + ("..." if len(prompt) > 1200 else ""))  # Print first 1200 chars
+
+    print("\nSending to Deepseek...")
     response = ask_deepseek(prompt)
     print("Deepseek returned.")
     return response
