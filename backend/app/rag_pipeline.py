@@ -10,46 +10,10 @@ EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 # Explicit mapping of chapter names (normalized) to vectorstore files
 # Update these mappings as per your actual chapters and files!
 CHAPTER_FILE_MAP = {
-    # Grade 1 EVS
-    ("1", "myself(introduction)"): "evs/1/G1EVS-01_vectors.json",
-    ("1", "my body"): "evs/1/G1EVS-01_vectors.json",
-    ("1", "keeping clean"): "evs/1/G1EVS-02_vectors.json",
-    ("1", "my family"): "evs/1/G1EVS-02_vectors.json",
-    ("1", "food we eat"): "evs/1/G1EVS-03_vectors.json",
-    ("1", "my home"): "evs/1/G1EVS-03_vectors.json",
-    ("1", "water"): "evs/1/G1EVS-03_vectors.json",
-    ("1", "clothes we wear"): "evs/1/G1EVS-03_vectors.json",
-    ("1", "my neighbourhood"): "evs/1/G1EVS-04_vectors.json",
-    ("1", "neighbourhood helpers"): "evs/1/G1EVS-04_vectors.json",
-    ("1", "festivals"): "evs/1/G1EVS-04_vectors.json",
-    ("1", "good habits and manners"): "evs/1/G1EVS-04_vectors.json",
-    ("1", "means of transport & communication"): "evs/1/G1EVS-04_vectors.json",
-    ("1", "plants around us"): "evs/1/G1EVS-05_vectors.json",
-    ("1", "animals around us 1"): "evs/1/G1EVS-05_vectors.json",
-    ("1", "earth and sky"): "evs/1/G1EVS-05_vectors.json",
-    # Grade 3 EVS
-    ("3", "family and relatives"): "evs/3/G3EVS-01_vectors.json",
-    ("3", "our body"): "evs/3/G3EVS-01_vectors.json",
-    ("3", "living and non-living things"): "evs/3/G3EVS-01_vectors.json",
-    ("3", "plants: our green friends"): "evs/3/G3EVS-02_vectors.json",
-    ("3", "animals around us 3"): "evs/3/G3EVS-02_vectors.json",
-    ("3", "the beautiful birds"): "evs/3/G3EVS-02_vectors.json",
-    ("3", "the food we eat"): "evs/3/G3EVS-02_vectors.json",
-    ("3", "shelter: my sweet home"): "evs/3/G3EVS-03_vectors.json",
-    ("3", "clothes: a basic need"): "evs/3/G3EVS-03_vectors.json",
-    ("3", "means of transport"): "evs/3/G3EVS-03_vectors.json",
-    ("3", "health is happiness"): "evs/3/G3EVS-04_vectors.json",
-    ("3", "avoid accidents and stay safe"): "evs/3/G3EVS-04_vectors.json",
-    ("3", "festivals and celebrations"): "evs/3/G3EVS-04_vectors.json",
-    ("3", "air and water"): "evs/3/G3EVS-05_vectors.json",
-    ("3", "the earth and other heavenly bodies"): "evs/3/G3EVS-05_vectors.json",
-    ("3", "maps and sketches"): "evs/3/G3EVS-05_vectors.json",
-    ("3", "the art of pottery"): "evs/3/G3EVS-06_vectors.json",
-    ("3", "things around us"): "evs/3/G3EVS-06_vectors.json",
     # Grade 4 EVS
     ("4", "our family"): "evs/4/G4EVS-01_vectors.json",
     ("4", "know your tongue and teeth"): "evs/4/G4EVS-01_vectors.json",
-    ("4", "animals around us 4"): "evs/4/G4EVS-02_vectors.json",
+    ("4", "animals around us"): "evs/4/G4EVS-02_vectors.json",
     ("4", "birds: beaks and claws"): "evs/4/G4EVS-02_vectors.json",
     ("4", "parts of a plant"): "evs/4/G4EVS-03_vectors.json",
     ("4", "food and health"): "evs/4/G4EVS-03_vectors.json",
@@ -155,118 +119,94 @@ CHAPTER_FILE_MAP = {
     ("10", "footprints: the hack driver"): "Grade 10/English/jefp108_vectors.json",
     ("10", "footprints: bholi"): "Grade 10/English/jefp109_vectors.json",
     ("10", "footprints: the book that saved the earth"): "Grade 10/English/jefp110_vectors.json",
+
+    # --- Grade 1 English Grammar
+    ("1", "nouns"): "eng/1/noun 1_vectors.json",
+    ("1", "prepositions"): "eng/1/preposition 1_vectors.json",
+
+    # --- Grade 5 English Grammar
+    ("5", "adverbs"): "eng/5/adverb 5_vectors.json",
+    ("5", "tenses"): "eng/5/tenses 5_vectors.json",
     # Add more mappings as needed for other grades/subjects
 }
 
 def normalize_chapter(text):
-    # Normalize for mapping AND UI input
-    return (
-        text.strip().lower()
-        .replace("’", "'").replace("‘", "'")
-        .replace("–", "-").replace("—", "-")
-        .replace(".", "").replace("  ", " ")
-        .replace("&", "and")  # Optional: unify ampersand
-    )
-
-def ensure_chapter_list(chapter):
-    if isinstance(chapter, str):
-        return [c.strip() for c in chapter.split(",") if c.strip()]
-    elif isinstance(chapter, list):
-        chapters = []
-        for item in chapter:
-            if isinstance(item, str):
-                chapters.extend([c.strip() for c in item.split(",") if c.strip()])
-        return chapters
-    else:
-        return [str(chapter).strip()] if chapter else []
+    return text.strip().lower().replace("’", "'").replace("‘", "'").replace("–", "-").replace("—", "-")
 
 def get_vectorstore_filename(grade: str, chapter: str) -> str:
-    grade_num = ''.join(filter(str.isdigit, str(grade)))
+    grade_num = ''.join(filter(str.isdigit, grade))
     chapter_key = normalize_chapter(chapter)
     key = (grade_num, chapter_key)
     if key in CHAPTER_FILE_MAP:
-        print(f"Exact mapping found for: {key} → {CHAPTER_FILE_MAP[key]}")
         return CHAPTER_FILE_MAP[key]
-    # Try partial match (optional)
     for (g, ch), filename in CHAPTER_FILE_MAP.items():
         if g == grade_num and chapter_key in ch:
-            print(f"Partial mapping found for: {chapter_key} in {ch} → {filename}")
             return filename
-    print(f"ERROR: No mapping found for grade '{grade_num}' and chapter '{chapter_key}'")
-    raise ValueError(f"Cannot match chapter name to any vectorstore file: {chapter} (normalized: {chapter_key})")
+    raise ValueError(f"Cannot match chapter name to any vectorstore file: {chapter}")
 
 def generate_material(request):
-    print("\n--- Starting material generation ---")
-    grade = request.grade        # e.g. "Grade 4" or "4"
-    chapters = ensure_chapter_list(getattr(request, "chapter", ""))
+    print("Starting generation...")
+    grade = request.grade
+
+    # ---- Handle chapters as list ----
+    chapters = request.chapter
+    if isinstance(chapters, str):
+        chapters = [c.strip() for c in chapters.split(",") if c.strip()]
+    elif isinstance(chapters, list):
+        chapters = [c.strip() for c in chapters if isinstance(c, str) and c.strip()]
+    else:
+        chapters = []
+
     material_type = request.material_type
     difficulty = request.difficulty
     max_marks = getattr(request, "max_marks", None)
 
-    print(f"Grade: {grade}")
-    print(f"Raw chapters: {chapters}")
-    print(f"Material type: {material_type}, Difficulty: {difficulty}, Max marks: {max_marks}")
-
     # Gather vectorstore files for all chapters
     vectorstore_files = []
     for chapter in chapters:
-        print(f"Processing chapter: '{chapter}' (normalized: '{normalize_chapter(chapter)}')")
-        try:
-            vf = get_vectorstore_filename(grade, chapter)
-            vectorstore_files.append(vf)
-        except Exception as e:
-            print(f"ERROR during mapping: {e}")
-            raise
+        vectorstore_files.append(get_vectorstore_filename(grade, chapter))
 
-    print(f"Vectorstore files to use: {vectorstore_files}")
-
-    # Collect vectors from all relevant files
+    # Collect vectors from all relevant files, tagging chapter
     vectors = []
-    for i, vectorstore_file in enumerate(vectorstore_files):
+    for chapter, vectorstore_file in zip(chapters, vectorstore_files):
         vectorstore_path = os.path.join(VECTORSTORE_DIR, vectorstore_file)
-        print(f"Loading vectorstore file for chapter '{chapters[i]}': {vectorstore_path}")
         if not os.path.exists(vectorstore_path):
-            print(f"ERROR: File does not exist: {vectorstore_path}")
-            raise FileNotFoundError(f"Vectorstore file not found for {grade}, {chapters[i]}: {vectorstore_file}")
-        try:
-            with open(vectorstore_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                print(f"Loaded {len(data)} records from {vectorstore_path}")
-                vectors.extend(data)
-        except Exception as e:
-            print(f"ERROR reading/parsing JSON from {vectorstore_path}: {e}")
-            raise
-
-    print(f"Total vectors loaded: {len(vectors)} from chapters: {chapters}")
-
-    if not vectors:
-        print("ERROR: No vectors found. Vectorstore files may be empty or corrupted.")
-        raise ValueError("No vector data available for the requested chapters.")
+            raise FileNotFoundError(f"Vectorstore file not found for {grade}, {chapter}: {vectorstore_file}")
+        with open(vectorstore_path, "r", encoding="utf-8") as f:
+            file_vectors = json.load(f)
+            # Tag the chapter in each vector if not already present
+            for v in file_vectors:
+                if "source_chapter" not in v:
+                    v["source_chapter"] = chapter
+            vectors.extend(file_vectors)
+    print(f"Loaded vectors: {len(vectors)} from chapters: {chapters}")
 
     model = SentenceTransformer(EMBEDDING_MODEL)
     print("Loaded embedding model.")
-
     user_query = (
         f"Create a {material_type.lower()} for {grade}, Chapters: '{', '.join(chapters)}', with {difficulty.lower()} difficulty."
     )
     query_vec = model.encode([user_query])[0]
-    print("Encoded query:", user_query)
+    print("Encoded query.")
 
     def cosine_sim(a, b):
         a = np.array(a)
         b = np.array(b)
         return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
 
-    scored_chunks = [
-        (cosine_sim(query_vec, entry["embedding"]), entry["text"])
-        for entry in vectors if "embedding" in entry and "text" in entry
-    ]
-    scored_chunks.sort(reverse=True, key=lambda x: x[0])
+    # NEW: For each chapter, get top N chunks
+    top_chunks = []
+    N = 2  # Number of top chunks per chapter
+    for chapter in chapters:
+        chapter_vectors = [entry for entry in vectors if entry.get("source_chapter", "").lower() == chapter.lower()]
+        if chapter_vectors:
+            scored = sorted(
+                [(cosine_sim(query_vec, entry["embedding"]), entry["text"]) for entry in chapter_vectors],
+                reverse=True, key=lambda x: x[0]
+            )
+            top_chunks.extend([text for _, text in scored[:N]])
 
-    top_chunks = [text for _, text in scored_chunks[:3]]
-    print("Top chunks selected for context:")
-    for idx, chunk in enumerate(top_chunks):
-        print(f"  [{idx+1}] {chunk[:120]}...")  # Print first 120 chars
+    print(f"Selected top {N} chunks per chapter for {len(chapters)} chapters.")
 
     # ---- CONTEXT-AWARE, ANTI-HALLUCINATION PROMPT ----
     cbse10_pattern = """
@@ -348,10 +288,10 @@ Show section labels, marks per section, question numbers, and clearly specify in
         f"- Do not use any markdown syntax (e.g., *, **, ---, etc.); output must be in plain text only.\n"
     )
 
-    print("\nPrompt for Deepseek:\n")
-    print(prompt[:1200] + ("..." if len(prompt) > 1200 else ""))  # Print first 1200 chars
-
-    print("\nSending to Deepseek...")
+    print("Sending to Deepseek...")
     response = ask_deepseek(prompt)
-    print("Deepseek returned.")
+    print("Deepseek returned: ", response)
+    if not response:
+        raise ValueError("Deepseek returned an empty response. Please check the prompt and context.")
+
     return response
