@@ -10,6 +10,23 @@ EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 # Explicit mapping of chapter names (normalized) to vectorstore files
 # Update these mappings as per your actual chapters and files!
 CHAPTER_FILE_MAP = {
+    # Grade 1 EVS
+    ("1", "myself"): "evs/1/G1EVS-01_vectors.json",
+    ("1", "my body"): "evs/1/G1EVS-01_vectors.json",
+    ("1", "keeping clean"): "evs/1/G1EVS-02_vectors.json",
+    ("1", "my family"): "evs/1/G1EVS-02_vectors.json",
+    ("1", "food we eat"): "evs/1/G1EVS-03_vectors.json",
+    ("1", "my home"): "evs/1/G1EVS-03_vectors.json",
+    ("1", "water"): "evs/1/G1EVS-03_vectors.json",
+    ("1", "clothes we wear"): "evs/1/G1EVS-03_vectors.json",
+    ("1", "my neighbourhood"): "evs/1/G1EVS-04_vectors.json",
+    ("1", "neighbourhood helpers"): "evs/1/G1EVS-04_vectors.json",
+    ("1", "festivals"): "evs/1/G1EVS-04_vectors.json",
+    ("1", "good habits and manners"): "evs/1/G1EVS-04_vectors.json",
+    ("1", "means of transport and communication"): "evs/1/G1EVS-04_vectors.json",
+    ("1", "plants around us"): "evs/1/G1EVS-05_vectors.json",
+    ("1", "animals around us"): "evs/1/G1EVS-05_vectors.json",
+    ("1", "earth and sky"): "evs/1/G1EVS-05_vectors.json",
     # Grade 4 EVS
     ("4", "our family"): "evs/4/G4EVS-01_vectors.json",
     ("4", "know your tongue and teeth"): "evs/4/G4EVS-01_vectors.json",
@@ -295,3 +312,4 @@ Show section labels, marks per section, question numbers, and clearly specify in
         raise ValueError("Deepseek returned an empty response. Please check the prompt and context.")
 
     return response
+
